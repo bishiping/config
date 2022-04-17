@@ -1,0 +1,185 @@
+# port of the http(s) proxy server on the local end
+port: 7890
+
+# port of socks5 proxy server on the local end
+socks-port: 7891
+
+# transparent proxy server port for linux and macox (Redirect TCP and TProxy UDP)
+# redir-port: 7892
+
+#transparent proxy server port for linux (TProxy TCP and TProxy UDP)
+# tproxy-port: 7893
+
+# HTTP(S) and SOCKS4(A)/SOCKS5 server on the same port
+# mixed-port: 7890
+
+# authentication of local socks5/http(s) server
+# authentication:
+# - "user1:pass1"
+# - "user2:pass2"
+
+# set to true to allow connections to the local-end server from other LAN IP address
+allow-lan: false
+
+# this is only applicable when 'allow-lan' is 'true'
+# '*': bind all IP addresses
+# 192.168.122.11: bind a singel IPv4 address
+# "[aaaa::a8aa:ff:fe09:57d8]": bind a single IPv6 address
+bind-address: '*'
+
+# clash router working mode
+# rule: rule-based packet routing
+# global: all packets will be forwarded to a single endpoint
+# direct: directly forward the packets to the Internet
+mode: rule
+
+# clash by default prints to STDOUT
+# info / warning / error / debug / silent
+log-level: info
+
+# when set to false, resolver won't translate hostnames to IPv6 addresses
+ipv6: false
+
+# Restful web API listening address
+external-controller: 127.0.0.1:9090
+
+# A relative path to the configuration directory or an absolute path to a directory in which you put some static web resource. 
+# Clash core will then serve it at 'http://{external-controller}/ui'.
+external-ui: folder
+
+# secret fot the Restful API(optional)
+# secret: ""
+
+# Outbound interface name
+# interface-name: en0
+
+# fwmark on linux only
+# routing-mark: 6666
+
+proxies:
+  - name: "ss1"
+    type: ss
+    server: 1.2.3.4
+    port: 443
+    cipher: chacha20-ietf-poly1305
+    password: "password0"
+    plugin: v2ray-plugin
+    plugin-opts:
+      mode: websocket # no quic now
+      tls: true
+      skip-cert-verify: false
+      host: bing.com
+      path: "/"
+      mux: true
+      # headers:
+      #   custom: value
+
+  - name: "ss2"
+    type: ss
+    server: 1.2.3.4
+    port: 443
+    cipher: chacha20-ietf-poly1305
+    password: "password0"
+    udp: true
+    plugin: obfs
+    plugin-opts:
+      mode: tls # or http
+      host: bing.com
+
+  - name: "ss3"
+    type: ss
+    server: 1.2.3.4
+    port: 443
+    cipher: chacha20-ietf-poly1305
+    password: "password0"
+    udp: true
+
+  - name: "vmess"
+    type: vmess
+    server: 1.2.3.4
+    port: 8080
+    uuid: uuid
+    alterId: 0
+    # cipher support auto / aes-128-gcm / chacha20-poly1305 / none
+    cipher: aes-128-gcm
+    udp: true
+    # tls: true
+    # skip-cert-verify: false
+    # servername: example.com
+    # network: ws
+    # ws-pots:
+    #   path: /
+    #   headers:
+    #     Host: v2ray.com
+    #   max-early-data: 2048
+    #   early-data-header-name: Sec-Websocket-Protocol
+
+proxy-groups:
+  - name: "AUTO"
+    type: url-test
+    proxies:
+      - ss1
+      - ss2
+      - ss3
+      - vmess
+    url: 'http://www.gstatic.com/generate_204'
+    interval: 300
+
+  - name: PROXY
+    type: select
+    proxies:
+      - AUTO
+      - ss1
+      - ss2
+      - ss3
+      - vmess
+
+rules:
+  # 屏蔽Google广告
+  - DOMAIN-KEYWORD, googleads, REJECT
+  - DOMAIN-SUFFIX, ads.google.com, REJECT
+  - DOMAIN-SUFFIX, adservice.google.com, REJECT
+  - DOMAIN-SUFFIX, doubleclick.net, REJECT
+  - DOMAIN-SUFFIX, doubleclick.com, REJECT
+  - DOMAIN-SUFFIX, googleadservices.com, REJECT
+  - DOMAIN-SUFFIX, googleadsserving.cn, REJECT
+  - DOMAIN-SUFFIX, googlesyndication.com, REJECT
+  - DOMAIN-SUFFIX, googletagservices.com, REJECT
+  - DOMAIN-SUFFIX, google-analytics.com, REJECT
+  - DOMAIN-SUFFIX, googletagmanager.com, REJECT
+  - DOMAIN-SUFFIX, mobileads.google.com, REJECT
+  - DOMAIN-SUFFIX, pagead.google.com, REJECT
+  - DOMAIN-SUFFIX, pagead.l.google.com, REJECT
+  - DOMAIN-SUFFIX, pagead-tpc.l.google.com, REJECT
+  # 屏蔽虎牙广告
+  - DOMAIN-SUFFIX, business.msstatic.com, REJECT
+  # 以下是代理规则
+  - DOMAIN-SUFFIX, teddysun.com, PROXY
+  - DOMAIN-SUFFIX, teddysun.net, PROXY
+  - DOMAIN-SUFFIX, v2fly.org, PROXY
+  - DOMAIN-SUFFIX, shiping.date, PROXY
+  - DOMAIN-SUFFIX, gravatar.com, PROXY
+  - DOMAIN-SUFFIX, youtube.com, PROXY
+  - DOMAIN-SUFFIX, cloudflare.com, PROXY
+  - DOMAIN-SUFFIX, vultr.com, PROXY
+  - DOMAIN-SUFFIX, bwh88.net, PROXY
+  - DOMAIN-SUFFIX, google.com, PROXY
+  - DOMAIN-KEYWORD, google, PROXY
+  # Telegram
+  - IP-CIDR,67.198.55.0/24,PROXY,no-resolve
+  - IP-CIDR,91.108.4.0/22,PROXY,no-resolve
+  - IP-CIDR,91.108.8.0/22,PROXY,no-resolve
+  - IP-CIDR,91.108.12.0/22,PROXY,no-resolve
+  - IP-CIDR,91.108.16.0/22,PROXY,no-resolve
+  - IP-CIDR,91.108.56.0/22,PROXY,no-resolve
+  - IP-CIDR,109.239.140.0/24,PROXY,no-resolve
+  - IP-CIDR,149.154.160.0/20,PROXY,no-resolve
+  - IP-CIDR,149.154.164.0/22,PROXY,no-resolve
+  - IP-CIDR,149.154.168.0/22,PROXY,no-resolve
+  - IP-CIDR,149.154.172.0/22,PROXY,no-resolve
+  - IP-CIDR,205.172.60.0/22,PROXY,no-resolve
+  - IP-CIDR6,2001:67c:4e8::/48,PROXY,no-resolve
+  - IP-CIDR6,2001:b28:f23d::/48,PROXY,no-resolve
+  - IP-CIDR6,2001:b28:f23f::/48,PROXY,no-resolve
+  - GEOIP, CN, DIRECT
+  - MATCH, PROXY
